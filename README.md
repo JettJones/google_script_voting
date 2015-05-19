@@ -73,50 +73,52 @@ Both voting types begin by clearing out the ballot:
 
 ### FPTP Ballot Form Setup
 
-1. The process from here on is the same for each vote.
-	a. Add a field for the first vote.
-		i. Add a “Multiple Choice” item.
-		ii. Name the item based on the vote (eg: “President”).
-		iii. Set the Question Type to “Choose from a list”
-		iv. Enter in each candidate’s name as a single entry to the list.
-		v. Check the “Required question” checkbox.
+The process from here on is the same for each vote.
+
+  * Add a field for the first vote.
+	* Add a “Multiple Choice” item.
+	* Name the item based on the vote (eg: “President”).
+	* Set the Question Type to “Choose from a list”
+	* Enter in each candidate’s name as a single entry to the list.
+	* Check the “Required question” checkbox.
 
 ### IRV Ballot Form Setup
 
 The process from here on is the same for each vote:
-  1. Add the first option for the first vote:
-    a. Add a “Multiple Choice” item.
-	b. Name it “1st choice”.
-	c. Set the Question Type to “Choose from a list”
-	d. Enter in each candidate’s name as a single entry to the list.
-	e. Check the “Required question” checkbox.
-	f. Expand the Advanced Settings area and check the “Shuffle option order” checkbox.
-  2. To create the next position, click the duplicate button (it looks like two pieces of paper on top of one another in the upper right of the field).
-  3. Modify the duplicate so that it is not required and name it “2nd choice”.
-  4. Further choices can be easily duplicated from the 2nd choice and renamed to “3rd choice”, “4th choice”, “5th choice”, etc.
+  * Add the first option for the first vote:
+    * Add a “Multiple Choice” item.
+	* Name it “1st choice”.
+	* Set the Question Type to “Choose from a list”
+	* Enter in each candidate’s name as a single entry to the list.
+	* Check the “Required question” checkbox.
+	* Expand the Advanced Settings area and check the “Shuffle option order” checkbox.
+  * To create the next position, click the duplicate button (it looks like two pieces of paper on top of one another in the upper right of the field).
+  * Modify the duplicate so that it is not required and name it “2nd choice”.
+  * Further choices can be easily duplicated from the 2nd choice and renamed to “3rd choice”, “4th choice”, “5th choice”, etc.
 
 ## Setting Up the Spreadsheet
 There is only one small difference between setting up the Elections Spreadsheet for FPTP versus IRV and that is the Choice Count column in the Configure sheet.
 
 Initial setup is the same for both voting systems. 
+
 1. Open the Elections Spreadsheet.
 2. Delete the Configure sheet.
 3. If you have changed the entries on the form, then the voting will fail to take notice of them. You must reset the form’s attachment to the spreadsheet so that the entries are all in order. To do so, do the following:
-	a. From the menu “Form”, select “Unlink Form”. Confirm that you are ok with this.
-	b. Delete the Votes sheet. This will clear out all previous configurations of the Ballot. The Results sheet should be the only one remaining. If you lack a sheet to leave remaining, create a temporary empty one so you can delete the Votes sheet.
-	c. Open the Elections Ballot form.
-	d. Click the “View Responses” button.
-	e. In the dialog that appears, select “New sheet in an existing spreadsheet...” and click “Choose”.
-	f. Choose the Elections Spreadsheet and click “Select”.
-	g. Select all rows from 2 onward that have data in them and delete them (unless you want that old data).
-	h. Delete the temporary sheet you created earlier in this process.
+  * From the menu “Form”, select “Unlink Form”. Confirm that you are ok with this.
+  * Delete the Votes sheet. This will clear out all previous configurations of the Ballot. The Results sheet should be the only one remaining. If you lack a sheet to leave remaining, create a temporary empty one so you can delete the Votes sheet.
+  * Open the Elections Ballot form.
+  * Click the “View Responses” button.
+  * In the dialog that appears, select “New sheet in an existing spreadsheet...” and click “Choose”.
+  * Choose the Elections Spreadsheet and click “Select”.
+  * Select all rows from 2 onward that have data in them and delete them (unless you want that old data).
+  * Delete the temporary sheet you created earlier in this process.
 4. From the menu “VOTING”, select “Initialize Spreadsheet”. This will recreate the Configure sheet empty.
 5. Populate the Configure sheet. To help you out, some of these instructions will show up on the notes for each heading that is populated.
-	a. Keys - keys allow you to make sure people do not overrun your voting system. Enter one valid key per cell. If you are not using keys, then change the second row from the default of “yes” to anything else.
-	b. Votes - votes are the various votes you are holding. If you are voting on only one decision, then you will enter only one vote. Make sure to list the votes in the order you have them in your form.
-	c. Choice Counts - must be configured differently depending on your voting system.
-		i. FPTP - Enter a 1 for each item. This is because the voter is allowed only a single vote.
-		ii. IRV - Enter the number of choices which you have configured for each vote in your form. For example, if there were three choices for President and you created the three entries in the Ballot, then you would enter a 3 in the second column next to the President entry from the first column.
+  * Keys - keys allow you to make sure people do not overrun your voting system. Enter one valid key per cell. If you are not using keys, then change the second row from the default of “yes” to anything else.
+  * Votes - votes are the various votes you are holding. If you are voting on only one decision, then you will enter only one vote. Make sure to list the votes in the order you have them in your form.
+  * Choice Counts - must be configured differently depending on your voting system.
+    * FPTP - Enter a 1 for each item. This is because the voter is allowed only a single vote.
+	* IRV - Enter the number of choices which you have configured for each vote in your form. For example, if there were three choices for President and you created the three entries in the Ballot, then you would enter a 3 in the second column next to the President entry from the first column.
 6. From the menu “VOTING”, select “Setup Voting”. This will create a new sheet named Results which is also where the results will be stored.
 
 ## Setting Secret Voting Keys
@@ -125,8 +127,8 @@ Secret keys are used the same in both FPTP and IRV.
 1. Open the Elections Spreadsheet.
 2. Select the “Configure” sheet. It should be the second one.
 3. On the first column under the heading of “Keys”, enter one secret key per line. These keys should be distributed, one per person, to the voters. Voters enter these keys into the form. This ensures that each voter:
-	a. has only one vote entry
-	b. can return and change their vote as often as they like
+  * has only one vote entry
+  * can return and change their vote as often as they like
 4. Secret keys must be exactly 5 characters long and may contain lowercase or uppercase letters or any number.
 
 ## Running the Vote

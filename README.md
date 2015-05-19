@@ -84,16 +84,16 @@ Both voting types begin by clearing out the ballot:
 ### IRV Ballot Form Setup
 
 1. The process from here on is the same for each vote:
-    a. Add the first option for the first vote:
-		i. Add a “Multiple Choice” item.
-		ii. Name it “1st choice”.
-		iii. Set the Question Type to “Choose from a list”
-		iv. Enter in each candidate’s name as a single entry to the list.
-		v. Check the “Required question” checkbox.
-		vi. Expand the Advanced Settings area and check the “Shuffle option order” checkbox.
-	b. To create the next position, click the duplicate button (it looks like two pieces of paper on top of one another in the upper right of the field).
-	c. Modify the duplicate so that it is not required and name it “2nd choice”.
-	d. Further choices can be easily duplicated from the 2nd choice and renamed to “3rd choice”, “4th choice”, “5th choice”, etc.
+  * Add the first option for the first vote:
+    * Add a “Multiple Choice” item.
+	* Name it “1st choice”.
+	* Set the Question Type to “Choose from a list”
+	* Enter in each candidate’s name as a single entry to the list.
+	* Check the “Required question” checkbox.
+	* Expand the Advanced Settings area and check the “Shuffle option order” checkbox.
+  * To create the next position, click the duplicate button (it looks like two pieces of paper on top of one another in the upper right of the field).
+  * Modify the duplicate so that it is not required and name it “2nd choice”.
+  * Further choices can be easily duplicated from the 2nd choice and renamed to “3rd choice”, “4th choice”, “5th choice”, etc.
 
 ## Setting Up the Spreadsheet
 There is only one small difference between setting up the Elections Spreadsheet for FPTP versus IRV and that is the Choice Count column in the Configure sheet.

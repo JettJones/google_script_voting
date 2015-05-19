@@ -42,88 +42,98 @@ Wikipedia describes FPTP well enough: http://en.wikipedia.org/wiki/First-past-th
 CGPGrey's five minute video, "The Problems with First Passed the Post Voting", also does a great job on YouTube: https://www.youtube.com/watch?v=s7tWHJfhiyo
 
 # Setting up the Script
-
 To get the script configured for your spreadsheet, follow these steps:
+
 1. Make a new Google Sheet.
-2. From the Tools menu, select "Script Editor"
-3. 
+2. From the Tools menu, select "Script Editor..."
+3. In the window that appears, select "Blank Script"
+4. Paste the contents of instant-runoff.gs into the script.
+5. Save your project with a name of your choice.
+6. Return to your Google Sheet and refresh the page.
 
-# Steps to run an election
+After a moment, a new "VOTING" menu should appear and it should also have automatically run the first menu option in the VOTING menu titled "Initialize Spreadsheet". 
 
-Steps to run an election.
-* Go to Google Drive. Create a new Google Form.
-* Create questions according to instructions on GitHub -- https://github.com/cartland/instant-runoff
-* From the form spreadsheet go to "Tools" -> "Script Editor..."
-* Copy the code from instant-runoff.gs into the editor.
-* Configure settings in the editor and match the settings with the names of your sheets.
-* From the form spreadsheet go to "Instant Runoff" -> "Setup".
-    * If this is not an option, run the function setup_instant_runoff() directly from the Script Editor.
-* Create keys in the sheet named "Keys".
-* Send out the live form for voting. If you are using keys, don't forget to distribute unique secret keys to voters.
-* From the form spreadsheet go to "Instant Runoff" -> "Run".
-    * If this is not an option, run the function run_instant_runoff() directly from the Script Editor.
+# Running an Election
+The Election Spreadsheet is designed to handle two forms of voting:
 
-# How to administer example election
+* First Past The Post (FPTP)
+  FPTP voting is the most commonly used voting. It suffers from various issues, most notably, the spoiler effect which requires people to vote strategically against those they don’t want to win.
+* Instant-Runoff Voting (IRV)
+  IRV is useful to ensure a more fair result since it eliminates the spoiler effect and allows people to freely vote for who they want without the need to strategically vote for the lesser of two evils.
 
-* Go to Google Drive. Create a new Google Form.
+ 
+## Setting Up the Ballot Form
 
-    * https://drive.google.com
-    
-* Create questions according to instructions on GitHub -- https://github.com/cartland/instant-runoff
+The major difference between FPTP and IRV on the Ballot is that FPTP needs only a single multiple choice item for each vote type while IRV needs to have the same number of multiple choice items as there are options for that vote type.
 
-**Edit Form**
+Both voting types begin by clearing out the ballot:
 
-Create a title that tells voters what they are voting for.
+1. Open the Elections Ballot form.
+2. Delete all options for each vote.
 
-    * Question 1 - "Secret Key", "", Text, Required
-    * Question 2 - "Choice 1", "", Text, Required
-    * Question 3 - "Choice 2", "", Text, Not Required
-    * Question 4 - "Choice 3", "", Text, Not Required
-    * Question 5 - "Choice 4", "", Text, Not Required
+### FPTP Ballot Form Setup
 
-Create the maximum number of choices that voters can submit.
+1. The process from here on is the same for each vote.
+	a. Add a field for the first vote.
+		i. Add a “Multiple Choice” item.
+		ii. Name the item based on the vote (eg: “President”).
+		iii. Set the Question Type to “Choose from a list”
+		iv. Enter in each candidate’s name as a single entry to the list.
+		v. Check the “Required question” checkbox.
 
-_Notes about editing questions_
+### IRV Ballot Form Setup
 
-    * The order that you create form questions matters. Google Forms do not allow you to move around columns, so it's best just to do this right from the beginning.
-    * If you mess up it is possible to cleverly modify the questions, but it's usually time consuming and easier to start from scratch.
-    * The choices must be the last questions in the form. This also means you can ask any number of questions before IRV as long as you update the settings.
-    * None of the column names matter.
+1. The process from here on is the same for each vote:
+    a. Add the first option for the first vote:
+		i. Add a “Multiple Choice” item.
+		ii. Name it “1st choice”.
+		iii. Set the Question Type to “Choose from a list”
+		iv. Enter in each candidate’s name as a single entry to the list.
+		v. Check the “Required question” checkbox.
+		vi. Expand the Advanced Settings area and check the “Shuffle option order” checkbox.
+	b. To create the next position, click the duplicate button (it looks like two pieces of paper on top of one another in the upper right of the field).
+	c. Modify the duplicate so that it is not required and name it “2nd choice”.
+	d. Further choices can be easily duplicated from the 2nd choice and renamed to “3rd choice”, “4th choice”, “5th choice”, etc.
 
-* From the form spreadsheet go to "Tools" -> "Script Editor..."
-Go to the spreadsheet from the editor by clicking the dropdown "See responses" and clicking "Spreadsheet". "Tools" is on the top bar.
-* Copy the code from instant-runoff.gs into the editor.
-Save the project (may need to create a project name). 
-* Configure settings in the editor and match the settings with the names of your sheets.
-The settings in instant-runoff.gs should already match the example names in this README.
-* From the form spreadsheet go to "Instant Runoff" -> "Setup".
-    * If this is not an option, run the function setup_instant_runoff() directly from the Script Editor.
-* Create keys in the sheet named "Keys".
-    * A2, "secretkey1"
-    * A3, "secretkey2"
-    * A4, "secretkey3"
-    * A5, "secretkey4"
-    * A6, "secretkey5"
+## Setting Up the Spreadsheet
+There is only one small difference between setting up the Elections Spreadsheet for FPTP versus IRV and that is the Choice Count column in the Configure sheet.
 
-    *Add at least enough keys to accommodate each voter.
+Initial setup is the same for both voting systems. 
+1. Open the Elections Spreadsheet.
+2. Delete the Configure sheet.
+3. If you have changed the entries on the form, then the voting will fail to take notice of them. You must reset the form’s attachment to the spreadsheet so that the entries are all in order. To do so, do the following:
+	a. From the menu “Form”, select “Unlink Form”. Confirm that you are ok with this.
+	b. Delete the Votes sheet. This will clear out all previous configurations of the Ballot. The Results sheet should be the only one remaining. If you lack a sheet to leave remaining, create a temporary empty one so you can delete the Votes sheet.
+	c. Open the Elections Ballot form.
+	d. Click the “View Responses” button.
+	e. In the dialog that appears, select “New sheet in an existing spreadsheet...” and click “Choose”.
+	f. Choose the Elections Spreadsheet and click “Select”.
+	g. Select all rows from 2 onward that have data in them and delete them (unless you want that old data).
+	h. Delete the temporary sheet you created earlier in this process.
+4. From the menu “VOTING”, select “Initialize Spreadsheet”. This will recreate the Configure sheet empty.
+5. Populate the Configure sheet. To help you out, some of these instructions will show up on the notes for each heading that is populated.
+	a. Keys - keys allow you to make sure people do not overrun your voting system. Enter one valid key per cell. If you are not using keys, then change the second row from the default of “yes” to anything else.
+	b. Votes - votes are the various votes you are holding. If you are voting on only one decision, then you will enter only one vote. Make sure to list the votes in the order you have them in your form.
+	c. Choice Counts - must be configured differently depending on your voting system.
+		i. FPTP - Enter a 1 for each item. This is because the voter is allowed only a single vote.
+		ii. IRV - Enter the number of choices which you have configured for each vote in your form. For example, if there were three choices for President and you created the three entries in the Ballot, then you would enter a 3 in the second column next to the President entry from the first column.
+6. From the menu “VOTING”, select “Setup Voting”. This will create a new sheet named Results which is also where the results will be stored.
 
-* Send out the live form for voting. If you are using keys, don't forget to distribute unique secret keys.
-    * Find the live form under Form -> Go to live form.
-* From the form spreadsheet go to "Instant Runoff" -> "Run".
-    * If this is not an option, run the function run_instant_runoff() directly from the Script Editor.
+## Setting Secret Voting Keys
+Secret keys are used the same in both FPTP and IRV. 
 
-# Settings
+1. Open the Elections Spreadsheet.
+2. Select the “Configure” sheet. It should be the second one.
+3. On the first column under the heading of “Keys”, enter one secret key per line. These keys should be distributed, one per person, to the voters. Voters enter these keys into the form. This ensures that each voter:
+	a. has only one vote entry
+	b. can return and change their vote as often as they like
+4. Secret keys must be exactly 5 characters long and may contain lowercase or uppercase letters or any number.
 
-Found in [instant-runoff.gs](https://github.com/cartland/instant-runoff/blob/master/instant-runoff.gs)
+## Running the Vote
+After all voters have their individual secret keys, distribute a link to the live form and wait for them to fill in the form.
 
-* VOTE\_SHEET\_NAME must match the name of sheet containing votes. "Sheet1" will work for unmodified form sheets. The example uses "Votes".
-* BASE\_ROW defines which row to contains the first voting information. Set this to 2.
-* BASE\_COLUMN is the column number for the first choice. In the example the first choice is in column C, so set this to 3.
-* USING\_KEYS = true if you want to use keys. The example uses keys so this is set to true.
-* VOTE\_SHEET\_KEYS\_COLUMN specifies which form column contains voter submitted keys in the VOTE_SHEET. In the example the secret keys are in column B, so set this to 2.
-* KEYS\_SHEET\_NAME is the name of the sheet containing the master list of valid voting keys. The examples calls this "Keys".
-* USED\_KEYS\_SHEET\_NAME is the name of the sheet where used keys are recorded. The example calls this "Used Keys".
+## Tallying the Vote
+Vote tallying depends on the vote style you chose. The vote style is something you will have configured earlier. 
 
-# Global Variables
+From the menu “VOTING”, select the “Tally Votes” option. This make take a few minutes. You can watch the highlighting as it happens in the Votes sheet. When it is complete, the Results sheet will contain the results for each vote as a note on the top column the vote is associated with. A final list will also appear in a message box.
 
-* NUM\_COLUMNS is the maximum number of choices. As of October 10, 2012, the software figures this out based on the first row of the voting sheet.

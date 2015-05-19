@@ -2,6 +2,8 @@
 First Passed The Post and Instant Runoff Voting with Google Form and Google Apps Script
 Author: Darrell Ross
 
+The original script, written by Chris Cartland, has been refactored numerous times but fragments of it still exist deep down in the calculation code.
+
 This project may contain bugs. Use at your own risk.
 
 This script has been designed for interaction straight from the Spreadsheet.
@@ -11,7 +13,6 @@ Instructions: https://docs.google.com/a/milsoft.com/document/d/1bLEOPwxfSTwEh_pQ
 
 TODO
  - eliminate dependence on the global variable VOTE_TYPE_NAME
-
 */
 
 /* BEGIN SETTINGS */ 

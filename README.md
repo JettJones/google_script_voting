@@ -1,22 +1,29 @@
 # README
 
-[Instant Runoff Voting](http://github.com/cartland/instant-runoff "IRV")
 
+[Google Spreadsheet Voting](http://github.com/eukota/google_spreadsheet_voting)
 
-Author: Chris Cartland
+Author: Darrell Ross
 
-Date created: 2012-04-29
+Last docs update: 2015-04-24
 
-Last docs update: 2012-10-05
+Original Script: [Instant Runoff Voting by Chris Cartland](https://github.com/cartland/instant-runoff)
 
+# What is this Voting Script?
 
-# What is instant-runoff voting?
+This script allows running a vote from a Google Docs Form via a Google Docs Spreadsheet. All configuration is done within the Spreadsheet with little to no programming experience necessary to configure and administrate your vote.
 
-Wikipedia describes IRV very well. http://en.wikipedia.org/wiki/Instant-runoff_voting
+Two voting styles are provided:
+* Instant Runoff Voting.
+* First Passed The Post Voting.
+
+## Instant Runoff Voting 
+Wikipedia describes IRV well enough: http://en.wikipedia.org/wiki/Instant-runoff_voting
+CGPGrey's five minute video, "The Alternative Vote", also does a great job on YouTube: https://www.youtube.com/watch?v=3Y3jE3B8HsE
 
 In this project, IRV is a method of electing one winner. Voters rank candidates in a Google Form and the administrator runs a script with Google Apps Script to determine the winner.
 
-## Instant-runoff voting from the voters perspective
+### Instant-runoff voting from a voter's perspective
 
 1. You get one vote that counts. It comes from your top choice that is still eligible.
 2. If a candidate gets a majority of votes, then that candidate wins.
@@ -29,6 +36,17 @@ _Notes about algorithm_
 * If multiple candidates tie for least votes, then all are removed.
 * It is possible that multiple candidates tie for first place, in which case the vote ends in a tie.
 
+### First Passed The Post Voting
+
+Wikipedia describes FPTP well enough: http://en.wikipedia.org/wiki/First-past-the-post_voting
+CGPGrey's five minute video, "The Problems with First Passed the Post Voting", also does a great job on YouTube: https://www.youtube.com/watch?v=s7tWHJfhiyo
+
+# Setting up the Script
+
+To get the script configured for your spreadsheet, follow these steps:
+1. Make a new Google Sheet.
+2. From the Tools menu, select "Script Editor"
+3. 
 
 # Steps to run an election
 

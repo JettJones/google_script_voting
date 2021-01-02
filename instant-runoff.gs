@@ -9,7 +9,7 @@ This project may contain bugs. Use at your own risk.
 This script can be configured with the 'Configure' tab in the Spreadsheet.
 There should be no need to edit this file at all.
 
-Instructions: https://docs.google.com/a/milsoft.com/document/d/1bLEOPwxfSTwEh_pQglM7nGkUtaFkjGu5QWqEV17FhcE/edit?usp=sharing
+Instructions: https://github.com/JettJones/google_script_voting
 
 */
 

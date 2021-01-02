@@ -1,29 +1,27 @@
 # README
 
+[Google Spreadsheet Voting](http://github.com/JettJones/google_spreadsheet_voting)
 
-[Google Spreadsheet Voting](http://github.com/eukota/google_spreadsheet_voting)
+Author: Jett Jones
 
-Author: Darrell Ross
+Last docs update: 2021-01-02
 
-Last docs update: 2015-04-24
+Previously [Instant Runoff Voting by Chris Cartland](https://github.com/cartland/instant-runoff) and
+[Google Spreadsheet Voting by Darell Ross](https://github.com/cartland/instant-runoff)
 
-Original Script: [Instant Runoff Voting by Chris Cartland](https://github.com/cartland/instant-runoff)
 
 # What is this Voting Script?
 
-This script allows running a vote from a Google Docs Form via a Google Docs Spreadsheet. All configuration is done within the Spreadsheet with little to no programming experience necessary to configure and administrate your vote.
+This script allows running a ranked choice vote from a Google Docs Form via a Google Docs Spreadsheet. All configuration is done within the Spreadsheet with little to no programming experience necessary to configure and administrate your vote.
 
-Two voting styles are provided:
-* Instant Runoff Voting.
-* First Passed The Post Voting.
 
-## Instant Runoff Voting 
-Wikipedia describes IRV well enough: http://en.wikipedia.org/wiki/Instant-runoff_voting
+## Ranked Choice Voting
+Wikipedia describes RCV well enough: http://en.wikipedia.org/wiki/Ranked-choice_voting
 CGPGrey's five minute video, "The Alternative Vote", also does a great job on YouTube: https://www.youtube.com/watch?v=3Y3jE3B8HsE
 
-In this project, IRV is a method of electing one winner. Voters rank candidates in a Google Form and the administrator runs a script with Google Apps Script to determine the winner.
+In this project, RCV is a method of electing one winner. Voters rank candidates in a Google Form and the administrator runs a script with Google Apps Script to determine the winner.
 
-### Instant-runoff voting from a voter's perspective
+### Ranked choice from a voter's perspective
 
 1. You get one vote that counts. It comes from your top choice that is still eligible.
 2. If a candidate gets a majority of votes, then that candidate wins.
@@ -33,109 +31,92 @@ In this project, IRV is a method of electing one winner. Voters rank candidates 
 _Notes about algorithm_
 
 * Majority means more than half of all votes. Example: candidate A gets 3 votes and candidates B, C, and D each get 1 vote. Candidate A does not have majority because 3 is not more than half of 6.
-* If multiple candidates tie for least votes, then all are removed.
+* If multiple candidates tie for least votes, first attempt to tiebreak looking at second preferences, then all still tied candidates are removed.
 * It is possible that multiple candidates tie for first place, in which case the vote ends in a tie.
 
-### First Passed The Post Voting
 
-Wikipedia describes FPTP well enough: http://en.wikipedia.org/wiki/First-past-the-post_voting
-CGPGrey's five minute video, "The Problems with First Passed the Post Voting", also does a great job on YouTube: https://www.youtube.com/watch?v=s7tWHJfhiyo
+# Setup a ballot
+The workflow will be:
+* setup a google form for the ballot
+* connect it to a spreadsheet
+* attach this script to the spreadsheet
 
-# Setting up the Script
-To get the script configured for your spreadsheet, follow these steps:
+## Setting Up the Ballot Form
+This script assumes the structure of votes coming out of the google form.  This section covers how to setup a form to match.
 
-1. Make a new Google Sheet.
+1. Create a new, blank form on [forms.google.com](https://docs.google.com/forms/u/0/)
+2. Add an entry for the Secret key, it should use the type: `Short answer`.
+3. Add a new question for each vote, they'll use the type: `Multiple choice grid`
+  * Add each candidate as a Row.
+  * For the columns use `1st` `2nd` `3rd` ... etc, up to the number of candidates.
+  * In the bottom right of the question there's a `...` menu with two important options to enable:
+     * Limit to one response per column
+     * Shuffle row order
+  * Leave 'Require a response in each row` toggled off.
+  * Finally, remember the name you give this question - you'll use it in spreadsheet configuration next.
+
+## Connect to a spreadsheet
+
+1. In the Responses tab of the form, in the (`...`) menu, `Select response destination`
+2. Create a new spreadsheet.
+
+## Attach this script
+
+1. Open the newly created spreadsheet.
 2. From the Tools menu, select "Script Editor..."
 3. In the window that appears, select "Blank Script"
 4. Paste the contents of instant-runoff.gs into the script.
 5. Save your project with a name of your choice.
 6. Return to your Google Sheet and refresh the page.
 
-After a moment, a new "VOTING" menu should appear and it should also have automatically run the first menu option in the VOTING menu titled "Initialize Spreadsheet". 
+
+After a moment, a new "VOTING" menu should appear and the script should create several tabs
+(*Configure, Results, and FilteredVotes).  The menu option in the VOTING menu titled "Initialize
+Spreadsheet" can re-run this setup at any time.
+
+The remaining steps will happen in that `Configure` tab - the other two are used while tallying.
+
+## Configure the spreadsheet
+
+There are three main columns in `Configure`: *Keys, Votes, Choice Counts*
+
+* Keys - keys are optional, but prevent double voting or allowing more folks than you intend to use your form.
+* Votes - the name, in the original form, of the question that represents a vote.
+* Choice Counts - the number of candidates in the corresponding vote.
+
+For example, if the question was titled 'Mayor' and you created three entries in the Ballot, then
+you would enter 3 in the second column next to Mayor in the first column.
+
+The use of keys can be enabled by entering `Yes` in column B1 of the configure sheet, keys are otherwise disabled.
 
 # Running an Election
-The Election Spreadsheet is designed to handle two forms of voting:
 
-* First Past The Post (FPTP)
-  FPTP voting is the most commonly used voting. It suffers from various issues, most notably, the spoiler effect which requires people to vote strategically against those they don’t want to win.
-* Instant-Runoff Voting (IRV)
-  IRV is useful to ensure a more fair result since it eliminates the spoiler effect and allows people to freely vote for who they want without the need to strategically vote for the lesser of two evils.
-
- 
-## Setting Up the Ballot Form
-
-The major difference between FPTP and IRV on the Ballot is that FPTP needs only a single multiple choice item for each vote type while IRV needs to have the same number of multiple choice items as there are options for that vote type.
-
-Both voting types begin by clearing out the ballot:
-
-1. Open the Elections Ballot form.
-2. Delete all options for each vote.
-
-### FPTP Ballot Form Setup
-
-The process from here on is the same for each vote.
-
-  * Add a field for the first vote.
-	* Add a “Multiple Choice” item.
-	* Name the item based on the vote (eg: “President”).
-	* Set the Question Type to “Choose from a list”
-	* Enter in each candidate’s name as a single entry to the list.
-	* Check the “Required question” checkbox.
-
-### IRV Ballot Form Setup
-
-The process from here on is the same for each vote:
-  * Add the first option for the first vote:
-    * Add a “Multiple Choice” item.
-	* Name it “1st choice”.
-	* Set the Question Type to “Choose from a list”
-	* Enter in each candidate’s name as a single entry to the list.
-	* Check the “Required question” checkbox.
-	* Expand the Advanced Settings area and check the “Shuffle option order” checkbox.
-  * To create the next position, click the duplicate button (it looks like two pieces of paper on top of one another in the upper right of the field).
-  * Modify the duplicate so that it is not required and name it “2nd choice”.
-  * Further choices can be easily duplicated from the 2nd choice and renamed to “3rd choice”, “4th choice”, “5th choice”, etc.
-
-## Setting Up the Spreadsheet
-There is only one small difference between setting up the Elections Spreadsheet for FPTP versus IRV and that is the Choice Count column in the Configure sheet.
-
-Initial setup is the same for both voting systems. 
+# Setting Secret Voting Keys
+Giving each vote a short key ahead of time ensures:
+ * each voter has only one vote entry
+ * they can return and change their vote if they like.
 
 1. Open the Elections Spreadsheet.
-2. Delete the Configure sheet.
-3. If you have changed the entries on the form, then the voting will fail to take notice of them. You must reset the form’s attachment to the spreadsheet so that the entries are all in order. To do so, do the following:
-  * From the menu “Form”, select “Unlink Form”. Confirm that you are ok with this.
-  * Delete the Votes sheet. This will clear out all previous configurations of the Ballot. The Results sheet should be the only one remaining. If you lack a sheet to leave remaining, create a temporary empty one so you can delete the Votes sheet.
-  * Open the Elections Ballot form.
-  * Click the “View Responses” button.
-  * In the dialog that appears, select “New sheet in an existing spreadsheet...” and click “Choose”.
-  * Choose the Elections Spreadsheet and click “Select”.
-  * Select all rows from 2 onward that have data in them and delete them (unless you want that old data).
-  * Delete the temporary sheet you created earlier in this process.
-4. From the menu “VOTING”, select “Initialize Spreadsheet”. This will recreate the Configure sheet empty.
-5. Populate the Configure sheet. To help you out, some of these instructions will show up on the notes for each heading that is populated.
-  * Keys - keys allow you to make sure people do not overrun your voting system. Enter one valid key per cell. If you are not using keys, then change the second row from the default of “yes” to anything else.
-  * Votes - votes are the various votes you are holding. If you are voting on only one decision, then you will enter only one vote. Make sure to list the votes in the order you have them in your form.
-  * Choice Counts - must be configured differently depending on your voting system.
-    * FPTP - Enter a 1 for each item. This is because the voter is allowed only a single vote.
-	* IRV - Enter the number of choices which you have configured for each vote in your form. For example, if there were three choices for President and you created the three entries in the Ballot, then you would enter a 3 in the second column next to the President entry from the first column.
-6. From the menu “VOTING”, select “Setup Voting”. This will create a new sheet named Results which is also where the results will be stored.
-
-## Setting Secret Voting Keys
-Secret keys are used the same in both FPTP and IRV. 
-
-1. Open the Elections Spreadsheet.
-2. Select the “Configure” sheet. It should be the second one.
-3. On the first column under the heading of “Keys”, enter one secret key per line. These keys should be distributed, one per person, to the voters. Voters enter these keys into the form. This ensures that each voter:
-  * has only one vote entry
-  * can return and change their vote as often as they like
-4. Secret keys must be exactly 5 characters long and may contain lowercase or uppercase letters or any number.
+2. Select the “Configure” sheet.
+3. On the first column under the heading of “Keys”, enter one secret key per line.
+  - These keys should be distributed, one per person, to the voters. Voters enter these keys into the form.
+  - Secret keys can be any non-blank value
+4. Set the `B1` cell of the Configuration sheet to `Yes`.
+   - this tells the tally step to only count votes with the given keys.
 
 ## Running the Vote
 After all voters have their individual secret keys, distribute a link to the live form and wait for them to fill in the form.
 
 ## Tallying the Vote
-Vote tallying depends on the vote style you chose. The vote style is something you will have configured earlier. 
 
-From the menu “VOTING”, select the “Tally Votes” option. This make take a few minutes. You can watch the highlighting as it happens in the Votes sheet. When it is complete, the Results sheet will contain the results for each vote as a note on the top column the vote is associated with. A final list will also appear in a message box.
+From the menu “VOTING”, select the “Tally Votes” option. For less than 100 votes, this should take a
+few seconds. You can watch the highlighting as it happens in the Votes sheet. When it is complete,
+the Results sheet will contain the results for each vote, with details for of the rounds of counting
+and elimination. A final list will also appear in a message box.
 
+
+# Links
+
+* The google form is inspired by [xFanatical](https://xfanatical.com/blog/how-to-create-ranked-choices-in-google-forms/)
+* [Wikipedia Ranked Choice Voting]( http://en.wikipedia.org/wiki/Ranked-choice_voting)
+* [CGPGrey "The Alternative Vote"](https://www.youtube.com/watch?v=3Y3jE3B8HsE)

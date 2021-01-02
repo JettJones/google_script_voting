@@ -1,13 +1,13 @@
 # README
 
-[Google Spreadsheet Voting](http://github.com/JettJones/google_spreadsheet_voting)
+[Google Spreadsheet Voting](http://github.com/JettJones/google_script_voting)
 
 Author: Jett Jones
 
 Last docs update: 2021-01-02
 
 Previously [Instant Runoff Voting by Chris Cartland](https://github.com/cartland/instant-runoff) and
-[Google Spreadsheet Voting by Darell Ross](https://github.com/cartland/instant-runoff)
+[Google Spreadsheet Voting by Darell Ross](https://github.com/eukota/google_script_voting)
 
 
 # What is this Voting Script?
@@ -16,8 +16,9 @@ This script allows running a ranked choice vote from a Google Docs Form via a Go
 
 
 ## Ranked Choice Voting
-Wikipedia describes RCV well enough: http://en.wikipedia.org/wiki/Ranked-choice_voting
-CGPGrey's five minute video, "The Alternative Vote", also does a great job on YouTube: https://www.youtube.com/watch?v=3Y3jE3B8HsE
+- Wikipedia describes RCV well enough: http://en.wikipedia.org/wiki/Ranked-choice_voting
+
+- CGPGrey's five minute video, "The Alternative Vote", also does a great job on YouTube: https://www.youtube.com/watch?v=3Y3jE3B8HsE
 
 In this project, RCV is a method of electing one winner. Voters rank candidates in a Google Form and the administrator runs a script with Google Apps Script to determine the winner.
 
@@ -47,13 +48,13 @@ This script assumes the structure of votes coming out of the google form.  This 
 1. Create a new, blank form on [forms.google.com](https://docs.google.com/forms/u/0/)
 2. Add an entry for the Secret key, it should use the type: `Short answer`.
 3. Add a new question for each vote, they'll use the type: `Multiple choice grid`
-  * Add each candidate as a Row.
-  * For the columns use `1st` `2nd` `3rd` ... etc, up to the number of candidates.
-  * In the bottom right of the question there's a `...` menu with two important options to enable:
+   * Add each candidate as a Row.
+   * For the columns use `1st` `2nd` `3rd` ... etc, up to the number of candidates.
+   * In the bottom right of the question there's a `...` menu with two important options to enable:
      * Limit to one response per column
      * Shuffle row order
-  * Leave 'Require a response in each row` toggled off.
-  * Finally, remember the name you give this question - you'll use it in spreadsheet configuration next.
+   * Leave 'Require a response in each row` toggled off.
+   * Finally, remember the name you give this question - you'll use it in spreadsheet configuration next.
 
 ## Connect to a spreadsheet
 
@@ -71,14 +72,14 @@ This script assumes the structure of votes coming out of the google form.  This 
 
 
 After a moment, a new "VOTING" menu should appear and the script should create several tabs
-(*Configure, Results, and FilteredVotes).  The menu option in the VOTING menu titled "Initialize
+( **Configure, Results, and FilteredVotes** ).  The menu option in the VOTING menu titled "Initialize
 Spreadsheet" can re-run this setup at any time.
 
 The remaining steps will happen in that `Configure` tab - the other two are used while tallying.
 
 ## Configure the spreadsheet
 
-There are three main columns in `Configure`: *Keys, Votes, Choice Counts*
+There are three main columns in `Configure`: **Keys, Votes, Choice Counts**
 
 * Keys - keys are optional, but prevent double voting or allowing more folks than you intend to use your form.
 * Votes - the name, in the original form, of the question that represents a vote.
@@ -92,15 +93,17 @@ The use of keys can be enabled by entering `Yes` in column B1 of the configure s
 # Running an Election
 
 # Setting Secret Voting Keys
+
 Giving each vote a short key ahead of time ensures:
- * each voter has only one vote entry
- * they can return and change their vote if they like.
+  * each voter has only one vote entry
+  * they can return and change their vote if they like.
+
 
 1. Open the Elections Spreadsheet.
 2. Select the “Configure” sheet.
 3. On the first column under the heading of “Keys”, enter one secret key per line.
-  - These keys should be distributed, one per person, to the voters. Voters enter these keys into the form.
-  - Secret keys can be any non-blank value
+   - These keys should be distributed, one per person, to the voters. Voters enter these keys into the form.
+   - Secret keys can be any non-blank value
 4. Set the `B1` cell of the Configuration sheet to `Yes`.
    - this tells the tally step to only count votes with the given keys.
 

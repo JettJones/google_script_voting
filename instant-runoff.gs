@@ -2,13 +2,11 @@
 Instant Runoff Voting with Google Form and Google Apps Script
 Author: Jett Jones
 
-This is a twice forked project, from Darrell Ross
-
-The original script, written by Chris Cartland, has been refactored numerous times but fragments of it still exist deep down in the calculation code.
+This is a twice forked project, from Darrell Ross, and the original script, written by Chris Cartland.
 
 This project may contain bugs. Use at your own risk.
 
-This script has been designed for interaction straight from the Spreadsheet.
+This script can be configured with the 'Configure' tab in the Spreadsheet.
 There should be no need to edit this file at all.
 
 Instructions: https://docs.google.com/a/milsoft.com/document/d/1bLEOPwxfSTwEh_pQglM7nGkUtaFkjGu5QWqEV17FhcE/edit?usp=sharing
@@ -605,6 +603,9 @@ function get_eliminated_candidates(votes, candidates) {
   return remove;
 }
 
+// Order eliminated candidates by their second preferences
+// So if we had Jess and Kat with 3 votes each, and next votes
+// went 2 to Kat, 1 to Jess, this method will return Jess to process first
 function elimination_tiebreak(results_range, votes, candidates, removed) {
   var next_votes = new Map();
   var _ignore_colors = new Map();

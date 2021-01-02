@@ -46,10 +46,10 @@ var KEYS_COLUMN = 2;          // column where keys would appear
 function InitUsingKeys() {
   var active_spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   if(active_spreadsheet.getSheetByName(CONFIGURE_SHEET_NAME) == null)
-    SetupConfigureSheet();  
+    SetupConfigureSheet();
   var usingKeys = active_spreadsheet.getSheetByName(CONFIGURE_SHEET_NAME).getRange("A1").getNote();
   if(usingKeys == "yes")
-    USING_KEYS = true;  
+    USING_KEYS = true;
   else
     USING_KEYS = false;
 }
@@ -65,7 +65,7 @@ function InitVoteTypesArray() {
   var choiceCountColumn = 4; // choice count is in column D
   var numColumns = 2;        // vote and choicecount columns
   var results_range = get_range_with_values(CONFIGURE_SHEET_NAME, firstRow, voteColumn, numColumns);
-  
+
   if (results_range == null) {
     Browser.msgBox("No vote positions listed. Looking within sheet: " + CONFIGURE_SHEET_NAME);
     return false;
@@ -84,14 +84,14 @@ function InitVoteTypesArray() {
     baseCol += previousChoiceCount;
     previousChoiceCount = choiceCountCellValue;
     VOTE_TYPE_ARRAY.push(new VoteType(voteTypeCellValue, row, choiceCountCellValue, baseCol));
-  }  
+  }
   return true;
 }
 /**************************/
 function GetVoteIndex(voteTypeName) {
   if(typeof(voteTypeName)==='undefined')
     return 0;
-  
+
   for (var i = 0; i < VOTE_TYPE_COUNT; i++) {
     if(VOTE_TYPE_ARRAY[i].VoteName == voteTypeName)
       return VOTE_TYPE_ARRAY[i].VoteIndex;
@@ -102,7 +102,7 @@ function GetVoteIndex(voteTypeName) {
 function GetChoiceCount(voteTypeName) {
   if(typeof(voteTypeName)==='undefined')
     return 0;
-  
+
   for (var i = 0; i < VOTE_TYPE_COUNT; i++) {
     if(VOTE_TYPE_ARRAY[i].VoteName == voteTypeName)
       return VOTE_TYPE_ARRAY[i].ChoiceCount;
@@ -113,7 +113,7 @@ function GetChoiceCount(voteTypeName) {
 function GetBaseColumn(voteTypeName) {
   if(typeof(voteTypeName)==='undefined')
     return 0;
-  
+
   for (var i = 0; i < VOTE_TYPE_COUNT; i++) {
     if(VOTE_TYPE_ARRAY[i].VoteName == voteTypeName)
       return VOTE_TYPE_ARRAY[i].BaseColumn;
@@ -126,7 +126,7 @@ function GetBaseColumn(voteTypeName) {
 
 
 function initialize_spreadsheet() {
-  var active_spreadsheet = SpreadsheetApp.getActiveSpreadsheet();  
+  var active_spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   active_spreadsheet.getSheets()[0].setName(VOTE_SHEET_NAME); // Rename Form Entries Sheet to "Votes"
   SetupConfigureSheet(); // Initialize Configuration Sheet
   create_menu_items();
@@ -137,7 +137,7 @@ function clear_voting() {
   initialize_spreadsheet(); // just to be safe
   InitVoteTypesArray();
   SetupResultsSheet();
-  ResetBackgroundColors();  
+  ResetBackgroundColors();
 }
 
 // Tallies the votes
@@ -176,7 +176,7 @@ function SetupConfigureSheet() {
   active_spreadsheet.getSheetByName(CONFIGURE_SHEET_NAME).getRange("A1").setValue("Keys").setFontWeight("bold");
   var keysHelpText = "Enter the keys starting on the second row. One key per cell.";
   active_spreadsheet.getSheetByName(CONFIGURE_SHEET_NAME).getRange("A2").setNote(keysHelpText);
-  
+
   active_spreadsheet.getSheetByName(CONFIGURE_SHEET_NAME).getRange("C1").setValue("Votes").setFontWeight("bold");
   var votesHelpText = "Enter the names of each vote you are holding. Enter them in the same order as you have them on your form.";
   active_spreadsheet.getSheetByName(CONFIGURE_SHEET_NAME).getRange("C1").setNote(votesHelpText).setFontWeight("bold");
@@ -211,7 +211,7 @@ function OutputVoteResults() {
     var winnerResultRangeString = String.fromCharCode(65+winnerVoteIndex) + '1';
     var winnerResultCell = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(RESULTS_SHEET_NAME).getRange(winnerResultRangeString).getCell(1,1);
     var winnerMessage = "Winner: " + winner + winnerDate;
-    winnerResultCell.setNote(winnerMessage);    
+    winnerResultCell.setNote(winnerMessage);
     fullResultString += "|****|" + winnerVote + " " + winnerMessage;
   }
   Browser.msgBox(fullResultString);
@@ -236,7 +236,7 @@ function onInstall() {
 }
 /***** END MENU CONFIGURATION *****/
 
-function tally_single_vote(voteTypeName) {                       
+function tally_single_vote(voteTypeName) {
   /* Determine number of voting columns */
   var active_spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   var row1_range = active_spreadsheet.getSheetByName(VOTE_SHEET_NAME).getRange("A1:1");
@@ -245,29 +245,29 @@ function tally_single_vote(voteTypeName) {
 
   /* Reset state */
   missing_keys_used_sheet_alert = false;
-  
+
   /* Begin */
   clear_background_color(baseColumn, choiceColumnCount);
-  
+
   var results_range = get_range_with_values(VOTE_SHEET_NAME, BASE_ROW, baseColumn, choiceColumnCount);
-  
+
   if (results_range == null) {
     Browser.msgBox("No votes. Looking for sheet: " + VOTE_SHEET_NAME);
     return false;
   }
   // Keys are used to prevent voters from voting twice.
   // Keys also allow voters to change their vote.
-  // If keys_range == null then we are not using keys. 
+  // If keys_range == null then we are not using keys.
   var keys_range = null;
-  
+
   // List of valid keys
   var valid_keys;
-  
+
   if (USING_KEYS) {
     keys_range = get_range_with_values(VOTE_SHEET_NAME, BASE_ROW, KEYS_COLUMN, 1);
     if (keys_range == null) {
-      Browser.msgBox("Using keys and could not find column with submitted keys. " + 
-                     "Looking in column " + KEYS_COLUMN + 
+      Browser.msgBox("Using keys and could not find column with submitted keys. " +
+                     "Looking in column " + KEYS_COLUMN +
                      " in sheet: " + VOTE_SHEET_NAME);
       return false;
     }
@@ -283,13 +283,13 @@ function tally_single_vote(voteTypeName) {
     }
     valid_keys = range_to_array(valid_keys_range);
   }
-  
+
   /* candidates is a list of names (strings) */
   var candidates = get_all_candidates(results_range);
-  
+
   /* votes is an object mapping candidate names -> number of votes */
   var votes = get_votes(results_range, candidates, keys_range, valid_keys);
-  
+
   /* winner is candidate name (string) or null */
   var winner = get_winner(votes, candidates);
 
@@ -299,7 +299,7 @@ function tally_single_vote(voteTypeName) {
     get_remaining_candidates(votes, candidates);
     if (candidates.length == 0) {
       if (missing_keys_used_sheet_alert) {
-        Browser.msgBox("Unable to record keys used. Looking for sheet: " + RESULTS_SHEET_NAME);    
+        Browser.msgBox("Unable to record keys used. Looking for sheet: " + RESULTS_SHEET_NAME);
       }
       var dateTimeMessage = " \nDate and time: " + Utilities.formatDate(new Date(), "PST", "yyyy-MM-dd HH:mm:ss");
       WINNER_ARRAY.push(new WinnerData("TIE",VOTE_TYPE_NAME,dateTimeMessage));
@@ -308,9 +308,9 @@ function tally_single_vote(voteTypeName) {
     votes = get_votes(results_range, candidates, keys_range, valid_keys);
     winner = get_winner(votes, candidates);
   }
-  
+
   if (missing_keys_used_sheet_alert) {
-    Browser.msgBox("Unable to record keys used. Looking for sheet: " + RESULTS_SHEET_NAME);    
+    Browser.msgBox("Unable to record keys used. Looking for sheet: " + RESULTS_SHEET_NAME);
   }
   var dateTimeMessage = " \nDate and time: " + Utilities.formatDate(new Date(), "PST", "yyyy-MM-dd HH:mm:ss");
   WINNER_ARRAY.push(new WinnerData(winner,VOTE_TYPE_NAME,dateTimeMessage));
@@ -324,7 +324,7 @@ function get_range_with_values(sheet_string, base_row, base_column, num_columns)
     return null;
   }
   var a1string = String.fromCharCode(65 + base_column - 1) +
-      base_row + ':' + 
+      base_row + ':' +
       String.fromCharCode(65 + base_column + num_columns - 2);
   var results_range = results_sheet.getRange(a1string);
   // results_range contains the whole columns all the way to
@@ -342,7 +342,7 @@ function get_range_with_values(sheet_string, base_row, base_column, num_columns)
 
 function range_to_array(results_range) {
   results_range.setBackground("#eeeeee");
-  
+
   var candidates = [];
   var num_rows = results_range.getNumRows();
   var num_columns = results_range.getNumColumns();
@@ -369,7 +369,7 @@ function range_to_array(results_range) {
 
 function get_all_candidates(results_range) {
   results_range.setBackground("#eeeeee");
-  
+
   var candidates = [];
   var num_rows = results_range.getNumRows();
   var num_columns = results_range.getNumColumns();
@@ -400,11 +400,11 @@ function get_votes(results_range, candidates, keys_range, valid_keys) {
   }
   var votes = {};
   var keys_used = [];
-  
+
   for (var c = 0; c < candidates.length; c++) {
     votes[candidates[c]] = 0;
   }
-  
+
   var num_rows = results_range.getNumRows();
   var num_columns = results_range.getNumColumns();
   for (var row = num_rows; row >= 1; row--) {
@@ -412,7 +412,7 @@ function get_votes(results_range, candidates, keys_range, valid_keys) {
     if (first_is_blank) {
       break;
     }
-    
+
     if (keys_range != null) {
       // Only use key once.
       var key_cell = keys_range.getCell(row, 1);
@@ -426,13 +426,13 @@ function get_votes(results_range, candidates, keys_range, valid_keys) {
         keys_used.push(key_cell_value);
       }
     }
-    
+
     for (var column = 1; column <= num_columns; column++) {
       var cell = results_range.getCell(row, column);
       if (cell.isBlank()) {
         break;
       }
-      
+
       var cell_value = cell.getValue();
       if (include(candidates, cell_value)) {
         votes[cell_value] += 1;
@@ -456,11 +456,11 @@ function update_keys_used(keys_used) {
     missing_keys_used_sheet_alert = true;
     return;
   }
-  
+
   // Clear Keys Used //
   clear_keys_used(); // relies on global VOTE_TYPE_NAME
-  
-  // Update List // 
+
+  // Update List //
   var entryIndex = GetVoteIndex(VOTE_TYPE_NAME)-1;
   var usedKeysRangeString = String.fromCharCode(65+entryIndex) + '2:' + String.fromCharCode(65+entryIndex);
   var usedKeysRange = keys_used_sheet.getRange(usedKeysRangeString);
@@ -476,14 +476,14 @@ function clear_keys_used() {
     missing_keys_used_sheet_alert = true;
     return;
   }
-  
+
   // Clear List //
   var entryIndex = GetVoteIndex(VOTE_TYPE_NAME)-1;
   var usedKeysRangeString = String.fromCharCode(65+entryIndex) + '2:' + String.fromCharCode(65+entryIndex);
   var usedKeysRange = keys_used_sheet.getRange(usedKeysRangeString);
   for (var row=0; row<usedKeysRange.getNumRows(); row++)
     usedKeysRange.getCell(row+1,1).setValue("").setBackground('#ffffff');
-    
+
 }
 
 function get_winner(votes, candidates) {
@@ -499,7 +499,7 @@ function get_winner(votes, candidates) {
       max = count;
     }
   }
-  
+
   if (max * 2 > total) {
     return winning;
   }
@@ -516,7 +516,7 @@ function get_remaining_candidates(votes, candidates) {
       min = count;
     }
   }
-  
+
   var c = 0;
   while (c < candidates.length) {
     var name = candidates[c];
@@ -529,7 +529,7 @@ function get_remaining_candidates(votes, candidates) {
   }
   return candidates;
 }
-  
+
 /*
 http://stackoverflow.com/questions/143847/best-way-to-find-an-item-in-a-javascript-array
 */
@@ -571,7 +571,7 @@ function clear_background_color(baseCol, numCols) {
     return;
   }
   results_range.setBackground('#eeeeee');
-  
+
   if (USING_KEYS) {
     var keys_range = get_range_with_values(VOTE_SHEET_NAME, BASE_ROW, KEYS_COLUMN, 1);
     keys_range.setBackground('#eeeeee');

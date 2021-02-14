@@ -15,94 +15,166 @@ Instructions: https://github.com/JettJones/google_script_voting
 
 /* BEGIN SETTINGS */
 /**************************/
-var VOTE_SHEET_NAME = "Votes";                   // active sheet where form data is entered will be renamed to this
-var CONFIGURE_SHEET_NAME = "Configure";          // Configuration for the voting process and secret keys is in this sheet.
-var RESULTS_SHEET_NAME = "Results";              // Logs of voting rounds are placed in this sheet.
-var FILTER_SHEET_NAME = "FilteredVotes";         // Votes are validated for Valid keys, then placed in this sheet.
-var BASE_ROW = 2;                                // row where votes start - could change it if you wanted to keep old votes
+const CONFIGURE_SHEET_NAME = "Configure";          // Configuration for the voting process is in this sheet.
+const CREDENTIAL_SHEET_NAME = "Credentials";       // Credentials and voter contact information.
+const FILTER_SHEET_NAME = "FilteredVotes";         // Votes are validated for Valid keys, then placed in this sheet.
+const RESULTS_SHEET_NAME = "Results";              // Logs of voting rounds are placed in this sheet.
+const RANDOM_RESULT = "Lots";
+const NO_ACTION_KEYS = ["No Action"];
+var VOTE_SHEET_NAME = "Votes";                     // Active sheet where form data is entered.
+const BASE_ROW = 2;                                // row where votes start - could change it if you wanted to keep old votes
 /**************************/
 /* END SETTINGS */
 
-function VoteType(pvote,pindex,pchoices,pbasecol,pcandidates)
+function VoteType(pvote,pchoices,pbasecol,presultrow,pcandidates)
 {
   this.VoteName = pvote;
-  this.VoteIndex = pindex;
   this.ChoiceCount = pchoices;
   this.BaseColumn = pbasecol;
+  this.ResultRow = presultrow;
   this.Candidates = pcandidates;
 }
 /**************************/
-function WinnerData(pname,pvote,pdate)
-{
-  this.WinnerName = pname;
-  this.WinnerVote = pvote;
-  this.WinnerDate = pdate;
+var CONFIG;                   // Map of configuration key-values
+var USING_KEYS;               // If true, use only votes with valid keys
+var SHEET_PER_ROUND;          // Show a separate sheet for each round
+var USING_NO_ACTION;          // Enable special handling for 'No Action'
+var TOP_N;                    // Stop counting once there are fewer than N candidates
+function InitConfig() {
+  if (CONFIG == null) {
+    ensure_sheet(CONFIGURE_SHEET_NAME, SetupConfigureSheet);
+    CONFIG = read_config();
+    var usingKeys = CONFIG.get("Use Keys");
+    USING_KEYS = is_true(usingKeys.toString());
+    var sheetPerRound = CONFIG.get("Sheet Per Round") || "False";
+    SHEET_PER_ROUND = is_true(sheetPerRound.toString());
+    var useNoAction = CONFIG.get("Use No Action") || "False";
+    USING_NO_ACTION = is_true(useNoAction.toString());
+
+    var useTopN = CONFIG.get("Top N") || "0"
+    TOP_N = parseInt(useTopN);
+  }
 }
-/**************************/
-var USING_KEYS = true;        // must be initted using InitUsingKeys()
-var KEYS_COLUMN = 2;          // column where keys would appear
-function InitUsingKeys() {
-  var config_sheet = ensure_sheet(CONFIGURE_SHEET_NAME, SetupConfigureSheet);
-  var usingKeys = config_sheet.getRange("B1").getValue();
-  USING_KEYS = (usingKeys.toString().toLowerCase() == "yes")
+
+function is_true(value) {
+  return ["yes", "y", "true", "1" ].includes(value.toLowerCase())
 }
 
 /**************************/
-var VOTE_TYPE_COUNT = 0;                     // Number of vote types - set during InitVoteTypesArray();
 var VOTE_TYPE_ARRAY = [];
-var WINNER_ARRAY = [];                       // All winner data
 var LOG_LENGTH = null;                       // Row for logs in the result sheet
 /**************************/
 
-// Look up all votes //
-function InitVoteTypesArray() {
-  var firstRow = 2;          // skip header
-  var voteColumn = 3;        // vote name is in column C
-  var choiceCountColumn = 4; // choice count is in column D
-  var numColumns = 2;        // vote and choicecount columns
-  var results_range = get_range_with_values(CONFIGURE_SHEET_NAME, firstRow, voteColumn, numColumns);
+function read_config() {
+  var config_range = get_range_with_values(CONFIGURE_SHEET_NAME, 1, 1, 2);
 
-  if (results_range == null) {
-    Browser.msgBox("No vote positions listed. Looking within sheet: " + CONFIGURE_SHEET_NAME);
+  if (config_range == null) {
+    Browser.msgBox("Configuration missing. Looking within sheet: " + CONFIGURE_SHEET_NAME);
     return false;
   }
 
-  var baseCol = 3;
-
-  var previousChoiceCount = 0;
-  const maxRows = results_range.getNumRows();
-
-  function get_candidate_names(base_column, choice_count) {
-    var vote_sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VOTE_SHEET_NAME);
-    var range = vote_sheet.getRange(1,  base_column, 1, choice_count);
-
-    const string_to_name = function (s) {
-      var ixStart = s.lastIndexOf("[");
-      var ixEnd = s.lastIndexOf("]");
-      return s.substr(ixStart + 1, ixEnd - ixStart - 1);
-    }
-
-    return range.getValues()[0].map(string_to_name);
-  }
-
-  // read configuration for each vote type
+  var result = new Map();
+  result.set("Vote", new Set());
+  const maxRows = config_range.getNumRows();
   for (var row = 1; row <= maxRows; row++) {
-    var voteTypeCell = results_range.getCell(row, 1);    // Vote Type is First Column of results_range
-    if (voteTypeCell.isBlank()) {
+    var key = config_range.getCell(row, 1);
+    var value = config_range.getCell(row, 2);
+
+    if (key.isBlank()) {
       continue;
     }
 
-    var voteTypeCellValue = voteTypeCell.getValue();
-    var choiceCountCell = results_range.getCell(row, 2); // Vote Choice Count is Second Column of results_range
-    var choiceCountCellValue = choiceCountCell.getValue();
-    baseCol += previousChoiceCount;
-    previousChoiceCount = choiceCountCellValue;
-    var candidateNames = get_candidate_names(baseCol, choiceCountCellValue);
-    VOTE_TYPE_ARRAY.push(new VoteType(voteTypeCellValue, row, choiceCountCellValue, baseCol, candidateNames));
+    const key_str = key.getValue();
+    if (key_str == "Vote") {
+      result.get(key_str).add(value.getValue());
+    } else {
+      result.set(key.getValue(), value.getValue());
+    }
   }
 
-  VOTE_TYPE_COUNT = VOTE_TYPE_ARRAY.length;
+  return result;
+}
+
+function InitVoteTypesArray() {
+  // read the configuration sheet //
+  InitConfig();
+  var vote_set = CONFIG.get("Vote");
+
+  // assume that the first sheet is the voting sheet
+  var vote_sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  VOTE_SHEET_NAME = vote_sheet.getSheetName();
+  const vote_header_ix  = Math.max(1, vote_sheet.getFrozenRows());
+  const max_cols = vote_sheet.getMaxColumns();
+  var header_row = vote_sheet.getRange(vote_header_ix, 1, 1, max_cols);
+  var headers = header_row.getValues()[0];
+
+  function string_to_name(s) {
+      var ixStart = s.lastIndexOf("[");
+      var ixEnd = s.lastIndexOf("]");
+      var prefix = s.substr(0, ixStart).trim();
+      return [prefix, s.substr(ixStart + 1, ixEnd - ixStart - 1)];
+  }
+
+  // read through the vote info headers.
+  var current_match = null;
+  var current_names = [];
+  var base_col = -1;
+  var base_result = 1;
+
+  function maybe_add() {
+    if (current_names.length > 0) {
+      if (vote_set.has(current_match)) {
+        VOTE_TYPE_ARRAY.push(new VoteType(current_match, current_names.length, base_col, base_result, current_names));
+        base_result += current_names.length
+      } else {
+        Logger.log("Skipping unexpected vote named:" + current_match);
+      }
+    }
+  };
+
+  for (var col = 0; col < headers.length; col++) {
+    var name = headers[col];
+    if (name === "" || name.indexOf("[") == -1) {
+      continue;
+    }
+    var split = string_to_name(headers[col]);
+    if (split[0] != current_match) {
+      // this is a new vote name, report the previous if any.
+      maybe_add();
+
+      // reset
+      [base_col, current_match, current_names] = [col, split[0], []];
+    }
+    current_names.push(split[1]);
+  }
+
+  maybe_add();
+
   return true;
+}
+
+function get_colors(count) {
+   const light = [
+     // "#e6b8af", "#f4cccc", "#fce5cd", "#fff2cc", "#d9ead3", "#d0e0e3", "#c9daf8", "#cfe2f3", "#d9d2e9", "#ead1dc"
+      "#dd7e6b", "#ea9999", "#f9cb9c", "#ffe599", "#b6d7a8", "#a2c4c9", "#a4c2f4", "#9fc5e8", "#b4a7d6", "#d5a6bd",
+      "#cc4125", "#e06666", "#f6b26b", "#ffd966", "#93c47d", "#76a5af", "#6d9eeb", "#6fa8dc", "#8e7cc3", "#c27ba0",
+      "#a61c00", "#cc0000", "#e69138", "#f1c232", "#6aa84f", "#45818e", "#3c78d8", "#3d85c6", "#674ea7", "#a64d79",
+      "#85200c", "#990000", "#b45f06", "#bf9000", "#38761d", "#134f5c", "#1155cc", "#0b5394", "#351c75", "#741b47",
+      //"#5b0f00", "#660000", "#783f04", "#7f6000", "#274e13", "#0c343d", "#1c4587", "#073763", "#20124d", "#4c1130"
+   ];
+
+  result = [];
+  while(count > 0) {
+    if (count > light.length) {
+      result.push(light);
+      count -= light.length;
+    } else {
+      result.push(...light.slice(0, count));
+      count = 0;
+    }
+  }
+
+  return result;
 }
 
 
@@ -132,21 +204,7 @@ function onInstall() {
 /**************************/
 /**************************/
 
-function OutputVoteResults() {
-  var fullResultString = "";
-  for (var i=0; i<VOTE_TYPE_COUNT; i++) {
-    var winner = WINNER_ARRAY[i].WinnerName;
-    var winnerVote = WINNER_ARRAY[i].WinnerVote;
-    var winnerDate = WINNER_ARRAY[i].WinnerDate;
-    var winnerMessage = "Winner: " + winner + winnerDate;
-    fullResultString += "** " + winnerVote + " " + winnerMessage + " **";
-  }
-  Browser.msgBox(fullResultString);
-}
-
 function initialize_spreadsheet() {
-  var active_spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-  active_spreadsheet.getSheets()[0].setName(VOTE_SHEET_NAME); // Rename Form Entries Sheet to "Votes"
   InitVoteTypesArray();
   create_menu_items();
 }
@@ -156,13 +214,14 @@ function clear_voting() {
   initialize_spreadsheet();
   SetupResultsSheet();
   SetupFilteredVotesSheet();
-  clear_background_color(VOTE_SHEET_NAME);
+  clear_rounds();
+  clear_vote_highlights();
 }
 
 function filter_only() {
   initialize_spreadsheet();
   SetupFilteredVotesSheet();
-  clear_background_color(VOTE_SHEET_NAME);
+  clear_vote_highlights();
   filter_votes();
 }
 
@@ -177,7 +236,7 @@ function tally_votes() {
   Logger.log("Running Init");
   clear_voting(); // start clean
 
-  InitUsingKeys();
+  InitConfig();
 
   Logger.log("Running Filter Step");
   filter_votes();
@@ -193,13 +252,15 @@ function tally_votes() {
 
   Logger.log("Displaying output message");
   if(success)
-    OutputVoteResults();
+    Browser.msgBox("Vote Tallying complete - see Results tab.");
   else
     Browser.msgBox("Vote Tallying failed.");
 }
 
 // Takes votes from the voting sheet, skips duplicates or invalid keys and copies to Filtered
 function filter_votes() {
+  InitConfig();
+
   var filter_sheet = ensure_sheet(FILTER_SHEET_NAME);
   var vote_sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VOTE_SHEET_NAME);
 
@@ -208,7 +269,7 @@ function filter_votes() {
   header.push("Timestamp");
 
   for(const vote_detail of VOTE_TYPE_ARRAY) {
-    while ((header.length + 1) < vote_detail.BaseColumn) {
+    while ((header.length) < vote_detail.BaseColumn) {
       header.push("");
     }
     const range_header = Array.from({length: vote_detail.ChoiceCount}, (_, i) => i+1);
@@ -219,15 +280,17 @@ function filter_votes() {
 
 
   // converting votes from the form output to countable rows
+  const other_cols = CONFIG.get("Other Columns") || 0;
+  const key_col = CONFIG.get("Key Column") || 2;
   var maxRow = vote_sheet.getLastRow();
-  var maxCol = vote_sheet.getLastColumn();
+  var maxCol = vote_sheet.getLastColumn() - other_cols;
   var full_range = vote_sheet.getDataRange();
   var full_values = full_range.getValues();
 
   // Rather than highlight and copy rows one-by-one
   // work in batches, for the slow spreadsheet apis.
   var chunk = [];
-  var write_ix = BASE_ROW;
+  var write_ix = 2;
   var last_write = maxRow;
   const max_chunk = 5;
 
@@ -247,7 +310,10 @@ function filter_votes() {
   var validKeys = new Set(get_valid_keys());
   var errorRows = [];
 
-  for (var i=maxRow; i >= BASE_ROW; i--) {
+  // allow a header on the voting sheet.
+  var read_min = Math.max(BASE_ROW, vote_sheet.getFrozenRows() + 1);
+
+  for (var i=maxRow; i >= read_min; i--) {
     const rowIx = i - 1;
     const cell = full_values[rowIx][0];
     if (cell === "") {
@@ -255,7 +321,7 @@ function filter_votes() {
     }
 
     if (USING_KEYS) {
-      const keyVal = full_values[rowIx][1];
+      const keyVal = full_values[rowIx][key_col];
       if (keyVal === "") {
         errorRows.push([i, "Key was not set"]);
         continue;
@@ -280,13 +346,13 @@ function filter_votes() {
       const candidate_names = vote_detail.Candidates;
 
       // convert from row, column to zero-based indexes in full_values
-      const colIx = vote_detail.BaseColumn -1;
+      const colIx = vote_detail.BaseColumn;
       const endColIx = colIx + vote_detail.ChoiceCount;
       const votes = full_values[rowIx].slice(colIx, endColIx);
 
       //
       // Votes come in the format 1st 2nd 3rd ... etc
-      // First map each vote to a pair with candidate name, like: ["5th", "Joe Joeson"]
+      // First map each vote to a pair with candidate name, like: ["5th", "Jo Joeson"]
       // Drop columns with a blank / missing vote.
       // Then parse the order so "12th" becomes 12.
       // Then sort pairs by that order.
@@ -306,11 +372,12 @@ function filter_votes() {
   }
 
   if (chunk.length > 0) {
-    write_chunk(BASE_ROW);
+    write_chunk(read_min);
   }
 
   if (USING_KEYS) {
-    const cells = errorRows.map(([ix, _]) => "A" + ix + ":B" + ix);
+    // D represents the last column before votes, this could be the lowest BaseColumn in vote_detail above
+    const cells = errorRows.map(([ix, _]) => "A" + ix + ":D" + ix);
     vote_sheet.getRangeList(cells).setBackground("#FF9900");
     for (const [ix, note] of errorRows) {
       vote_sheet.getRange(ix, 2).setNote(note);
@@ -319,8 +386,12 @@ function filter_votes() {
 }
 
 function get_valid_keys() {
-  var range = get_range_with_values(CONFIGURE_SHEET_NAME, 2, 1, 1)
-  return range.getValues().map(([x]) => x);
+  var range = get_range_with_values(CREDENTIAL_SHEET_NAME, base_row=2, base_column=3, num_columns=1)
+  if (range) {
+    return range.getValues().map(([x]) => x);
+  } else {
+    return [];
+  }
 }
 
 // Creates the Configure Sheet if it doesn't exist. Does not remove configuration data.
@@ -328,13 +399,11 @@ function SetupConfigureSheet() {
   var config = ensure_sheet(CONFIGURE_SHEET_NAME);
 
   const key_setting = config.getRange("B1").getValue();
-  const header = ["Keys",key_setting, "Votes", "Choice Counts"];
-  const notes = ["Enter the keys in this column, starting on the second row. One key per cell.",
-  "Set this cell to 'Yes' to enable keys.",
-  "Enter the names of each vote you are holding. Enter them in the same order as you have them on your form.",
-  "Enter the quantity of choices you have. If this is First Passed The Post voting, then all entries will be 1. If it is Instant-Runoff, enter the number of choices for each item."];
+  const header = [["Use Keys"],["Vote"]];
+  const notes = [["Set  cell B1 to 'Yes' to enable keys."],
+      ["Enter the name of the vote you are holding."]];
 
-  config.getRange("A1:D1").setValues([header]).setNotes([notes]).setFontWeight("bold");
+  config.getRange("A1:A2").setValues(header).setNotes(notes).setFontWeight("bold");
 }
 
 function SetupFilteredVotesSheet() {
@@ -350,7 +419,7 @@ function SetupResultsSheet() {
   // Clear and Repopulate Column Headers //
   result_sheet.clear({commentsOnly: true, contentsOnly: true});
 
-  result_sheet.getRange(1, 1, 1, 5).setValues([["Vote Name", "Winner", "Rounds", "", "Log Length:"]]).setFontStyle("bold");
+  result_sheet.getRange(1, 1, 1, 5).setValues([["Vote Name", "Rounds", "", "", "Log Length:"]]).setFontStyle("bold");
 
   var output_row = 2;
 
@@ -365,28 +434,28 @@ function SetupResultsSheet() {
   result_sheet.getRange(1,6).setValue(LOG_LENGTH);
 }
 
-function results_for_round(vote_detail, roundN, votes)
-{
+function results_for_round(vote_detail, roundN, votes) {
   var result_sheet = ensure_sheet(RESULTS_SHEET_NAME);
+  var row_start = vote_detail.ResultRow + 1; // where to start writing the election output
 
-  var range = result_sheet.getRange(vote_detail.BaseColumn, roundN + 1, vote_detail.Candidates.length, 1);
+  var range = result_sheet.getRange(row_start, roundN + 1, vote_detail.Candidates.length + 1, 1);
 
-  var vote_counts = vote_detail.Candidates.map( (name) => [(votes.get(name) || [] ).length]);
+  var vote_counts = [[roundN]];
+  vote_counts.push(...vote_detail.Candidates.map( (name) => [(votes.get(name) || [] ).length]));
 
   range.setValues(vote_counts);
 }
 
 function tally_single_vote(voteType) {
-  var voteTypeName = voteType.VoteName;
-
   /* Determine number of voting columns */
   var choiceColumnCount = voteType.ChoiceCount;
-  var baseColumn = voteType.BaseColumn;
+  var baseColumn = voteType.BaseColumn + 1;
+  var baseRow = 2
   var round = 1;
 
   /* Begin */
   var input_sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FILTER_SHEET_NAME);
-  var results_range = get_range_with_values(FILTER_SHEET_NAME, BASE_ROW, baseColumn, choiceColumnCount);
+  var results_range = get_range_with_values(FILTER_SHEET_NAME, baseRow, baseColumn, choiceColumnCount);
 
   if (results_range == null) {
     Browser.msgBox("No votes. Looking for sheet: " + FILTER_SHEET_NAME);
@@ -395,19 +464,23 @@ function tally_single_vote(voteType) {
 
   /* candidates is a set of names (strings) */
   var candidates = get_all_candidates(results_range);
+  const colors = get_colors(candidates.size);
+  var color_map = new Map();
+  var ix=0;
+  candidates.forEach((c) => color_map.set(c, colors[ix++]));
 
   // Coloring cells one by one is slow
   // Instead, collect cells by the intended color, and setBackground in bulk
   var color_updates = new Map();
   const show_color = function(color_map) {
     for(const [color, list] of color_map) {
-      const r1c1 = list.map(function([r, c]) {return String.fromCharCode(63 + c + baseColumn) + (r + BASE_ROW -1);});
+      const r1c1 = list.map(function([r, c]) {return String.fromCharCode(63 + c + baseColumn) + (r + 1);});
       input_sheet.getRangeList(r1c1).setBackground(color);
     }
   };
 
   /* votes is an map from candidate names -> list of votes */
-  var votes = get_votes(results_range, candidates, color_updates);
+  var votes = get_votes(results_range, candidates, color_updates, color_map);
 
   /* winner is candidate name (string) or null */
   var winner = get_winner(votes, candidates);
@@ -416,9 +489,30 @@ function tally_single_vote(voteType) {
   show_color(color_updates);
   status.push(summary_string(votes, winner));
   results_for_round(voteType, round, votes);
+
+  function copy_round(r) {
+    if (!SHEET_PER_ROUND) { return; }
+
+    const round_name = "_round" + r;
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(round_name);
+    if (sheet != null) { ss.deleteSheet(sheet); }
+    const len = ss.getSheets().length
+    ss.insertSheet(round_name, sheet_index=len, options={'template':input_sheet});
+  }
+
+  copy_round(round);
   round += 1;
 
   while (winner == null) {
+
+    if (TOP_N > 0 && candidates.size <= TOP_N) {
+      status.push("Found Top " + TOP_N + " candidates")
+      show_status(status);
+      show_status(["Result: Complete"]);
+      return true;
+    }
+
     var eliminated = get_eliminated_candidates(votes, candidates);
 
     if (eliminated.length > 1) {
@@ -434,27 +528,23 @@ function tally_single_vote(voteType) {
     show_status(status);
 
     if (candidates.size == 0) {
-      var dateTimeMessage = " \nDate and time: " + Utilities.formatDate(new Date(), "PST", "yyyy-MM-dd HH:mm:ss");
-      WINNER_ARRAY.push(new WinnerData("TIE",voteTypeName,dateTimeMessage));
       show_status(["Result: TIE "]);
       return true;
     }
 
     status = [];
     color_updates.clear();
-    votes = update_votes(results_range, candidates, votes, eliminated, color_updates);
+    votes = update_votes(results_range, candidates, votes, eliminated, color_updates, color_map);
     winner = get_winner(votes, candidates);
 
     show_color(color_updates);
     status.push(summary_string(votes, winner))
     results_for_round(voteType, round, votes);
+    copy_round(round);
     round += 1;
   }
 
   show_status(status);
-  var dateTimeMessage = " \nDate and time: " + Utilities.formatDate(new Date(), "PST", "yyyy-MM-dd HH:mm:ss");
-  WINNER_ARRAY.push(new WinnerData(winner,voteTypeName,dateTimeMessage));
-
   show_status(["Result: Winner"]);
   return true;
 }
@@ -514,7 +604,7 @@ function get_all_candidates(results_range) {
   return candidates;
 }
 
-function get_votes(results_range, candidates, color_updates) {
+function get_votes(results_range, candidates, color_updates, color_map) {
   var votes = new Map();
 
   for(const c of candidates) {
@@ -524,28 +614,29 @@ function get_votes(results_range, candidates, color_updates) {
   var num_rows = results_range.getNumRows();
   var num_columns = results_range.getNumColumns();
   for (var row = num_rows; row >= 1; row--) {
-    row_vote(results_range, candidates, votes, row, num_columns, color_updates);
+    row_vote(results_range, candidates, votes, row, num_columns, color_updates, color_map);
   }
   return votes;
 }
 
-function row_vote(results_range, candidates, votes, row, num_columns, color_updates) {
+function row_vote(results_range, candidates, votes, row, num_columns, color_updates, color_map) {
   function set_color(value, color) {
-    if (!color_updates.has(color)) { color_updates.set(color, []);}
+    if (!color_updates.has(color)) { color_updates.set(color, []); }
     color_updates.get(color).push(value);
   }
 
     for (var column = 1; column <= num_columns; column++) {
-      var cell = results_range.getCell(row, column);
-      if (cell.isBlank()) {
-        // no further votes for this row; exhausted
-        break;
-      }
+      const cell = results_range.getCell(row, column);
+      const is_blank = cell.isBlank();
+      var cell_value;
+      if (USING_NO_ACTION && cell.isBlank()) { cell_value = NO_ACTION_KEYS[0]; }
+      else if (is_blank) { break; } // no futher votes for this row; exhausted
+      else { cell_value = cell.getValue(); }
 
-      var cell_value = cell.getValue();
       if (candidates.has(cell_value)) {
         votes.get(cell_value).push(row);
-        set_color([row, column], "#aaffaa");
+        const color = (color_map) ? color_map.get(cell_value) : "#aaffaa";
+        set_color([row, column], color);
         break;
       }
 
@@ -553,19 +644,19 @@ function row_vote(results_range, candidates, votes, row, num_columns, color_upda
     }
 }
 
-function update_votes(results_range, candidates, votes, removed, color_updates) {
+function update_votes(results_range, candidates, votes, removed, color_updates, color_map) {
   var num_columns = results_range.getNumColumns();
   for (const name of removed) {
     const rows = votes.get(name);
     for(const row of rows) {
-      row_vote(results_range, candidates, votes, row, num_columns, color_updates);
+      row_vote(results_range, candidates, votes, row, num_columns, color_updates, color_map);
     }
     votes.delete(name);
   }
   return votes;
 }
 
-function get_winner(votes, candidates) {
+function get_winner(votes) {
   var total = 0;
   var winning = null;
   var max = 0;
@@ -587,6 +678,8 @@ function get_winner(votes, candidates) {
 function get_eliminated_candidates(votes, candidates) {
   var min = -1;
   for (const name of candidates) {
+    if (USING_NO_ACTION && NO_ACTION_KEYS.includes(name)) { continue;}
+
     var count = votes.get(name).length;
     if (count < min || min == -1) {
       min = count;
@@ -595,6 +688,8 @@ function get_eliminated_candidates(votes, candidates) {
 
   var remove = [];
   for(const name of candidates) {
+    if (USING_NO_ACTION && NO_ACTION_KEYS.includes(name)) { continue;}
+
     var count = votes.get(name).length;
     if (count == min)
       remove.push(name);
@@ -603,10 +698,52 @@ function get_eliminated_candidates(votes, candidates) {
   return remove;
 }
 
-// Order eliminated candidates by their second preferences
-// So if we had Jess and Kat with 3 votes each, and next votes
-// went 2 to Kat, 1 to Jess, this method will return Jess to process first
 function elimination_tiebreak(results_range, votes, candidates, removed) {
+  var result = eliminate_by_next(results_range, votes, candidates, removed);
+
+  if (result.length > 1) {
+    result = eliminate_by_lot(result);
+  }
+  return result;
+}
+
+function eliminate_by_lot(removed) {
+  // randomly choose one of the removed candidates, and preserve the random choice
+
+  var lot_sheet = ensure_sheet(RANDOM_RESULT);
+  var lot_range = get_range_with_values(RANDOM_RESULT, 1, 1, 2);
+
+  var result = new Map();
+  const maxRows = lot_range.getNumRows();
+  for (var row = 1; row <= maxRows; row++) {
+    var key = lot_range.getCell(row, 1);
+
+    if (key.isBlank()) {
+       continue;
+    }
+
+    var value = lot_range.getCell(row, 2);
+    result.set(key.getValue(), value.getValue());
+  }
+
+  var removed_list = new Array(removed);
+  removed_list.sort();
+  var lot_key = removed_list.join("||");
+
+  var chosen = 0;
+  if (result.has(lot_key)) {
+    chosen = result.get(lot_key);
+  } else {
+    chosen = Math.floor(Math.random() * removed.length);
+    lot_sheet.getRange(lot_range.getNumRows() + 1, 1, 1, 2).setValues([[lot_key, chosen]]);
+  }
+  return [removed[chosen]];
+}
+
+function eliminate_by_next(results_range, votes, candidates, removed) {
+  // for all removed candidates, check the votes in the next round
+  // the candidate with the least follow-on votes is removed.
+
   var next_votes = new Map();
   var _ignore_colors = new Map();
 
@@ -620,17 +757,71 @@ function elimination_tiebreak(results_range, votes, candidates, removed) {
     var temp_candidates = new Set(candidates);
     temp_candidates.delete(name);
     for(const row of rows) {
-      row_vote(results_range, temp_candidates, next_votes, row, num_columns, _ignore_colors);
+      row_vote(results_range, temp_candidates, next_votes, row, num_columns, _ignore_colors, null);
     }
   }
 
   return get_eliminated_candidates(next_votes, removed);
 }
 
+/**************************/
+ function make_test_votes() {
+  var count = 100;
+
+  InitVoteTypesArray();
+  var vote_sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VOTE_SHEET_NAME);
+  const last_row = vote_sheet.getLastRow();
+  const vote = VOTE_TYPE_ARRAY[0];
+
+  function gen_vote() {
+    var row = [];
+    row[0] = new Date().toLocaleString("en-US");
+    row[1] = "TEST GENERATED";
+
+    ranks = Array.from({length: vote.ChoiceCount}, (_, i) => i+1);
+    ranks.sort((a,b) => 0.5 - Math.random());
+
+    for(var i = 0; i < vote.ChoiceCount; i++) {
+      row[i + vote.BaseColumn] =  ranks[i];
+    }
+    return row;
+  }
+  for (var ix = 0; ix < count; ix++) {
+    row = gen_vote();
+    var row_ix = last_row + 1 + ix;
+    var range = vote_sheet.getRange(row_ix, 1, 1, row.length);
+    range.setValues([row]);
+  }
+}
+
+
+/**************************/
+/**************************/
+function clear_rounds() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet();
+  for (var ss of sheet.getSheets()) {
+    if (ss.getSheetName().startsWith("_round")) {
+      sheet.deleteSheet(ss);
+    }
+  }
+}
+
+function clear_vote_highlights() {
+  var vote_sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(VOTE_SHEET_NAME);
+  const other_cols = CONFIG.get("Other Columns") || 0;
+  var maxRow = vote_sheet.getLastRow();
+  var maxCol = vote_sheet.getLastColumn() - other_cols;
+
+  var range = vote_sheet.getRange(1, 1, maxRow, maxCol);
+  range.clearFormat();
+
+}
+
 function ensure_sheet(sheet_name, callback) {
   var active_spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
   if (active_spreadsheet.getSheetByName(sheet_name) == null) {
-    active_spreadsheet.insertSheet(sheet_name);
+    const ix = active_spreadsheet.getSheets().length;
+    active_spreadsheet.insertSheet(sheet_name, sheetIndex=ix);
     if (callback != null) {
       callback();
     }
@@ -645,7 +836,10 @@ function get_range_with_values(sheet_string, base_row, base_column, num_columns)
   }
 
   var max_row = results_sheet.getLastRow();
-  results_range = results_sheet.getRange(base_row, base_column, max_row - base_row + 1, num_columns);
+  if (max_row > 0)
+    results_range = results_sheet.getRange(base_row, base_column, max_row - base_row + 1, num_columns);
+  else
+    results_range = results_sheet.getDataRange()
   return results_range;
 }
 
